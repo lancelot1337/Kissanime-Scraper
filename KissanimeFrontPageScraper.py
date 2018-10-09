@@ -2,9 +2,10 @@
 import cfscrape
 from bs4 import BeautifulSoup as soup
 
+URL = 'https://kissanime.ac/kissanime.html'
 # Bypassing CloudFare DDos Protection using 3rd party module called 'cfscrape'
 scraper = cfscrape.create_scraper()
-pageHTML = scraper.get('https://kissanime.ac/kissanime.html').content
+pageHTML = scraper.get(URL).content
 
 # Grabbing HTML source code
 pageSoup = soup(pageHTML,'html.parser')
