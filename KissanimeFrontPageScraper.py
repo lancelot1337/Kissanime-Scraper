@@ -1,62 +1,65 @@
 # Importing important libraries
 import cfscrape
 from bs4 import BeautifulSoup as soup
+import re
 
-# Bypassing CloudFare DDos Protection using 3rd party module called 'cfscrape'
-scraper = cfscrape.create_scraper()
-pageHTML = scraper.get('https://kissanime.ac/kissanime.html').content
 
-# Grabbing HTML source code
-pageSoup = soup(pageHTML,'html.parser')
+def get_link(text):
+    return re.search("(?P<url>https?://[^\s]+.jpg)", text).group("url")
 
-# Finding the desired container from the pageSoup
-containers = pageSoup.findAll('div',{'class':'item_film_list'})
 
-# Opening file for writing csv
-fileName = 'KissanimeFrontPage.csv'
+def scrape(link, fileName):
+    # Bypassing CloudFare DDos Protection using 3rd party module called 'cfscrape'
+    scraper = cfscrape.create_scraper()
+    pageHTML = scraper.get(link).content
 
-# Using utf8 encoding due to compatibility issue in Windows
-f = open(fileName,'w',encoding = 'utf8')
+    # Grabbing HTML source code
+    pageSoup = soup(pageHTML, 'html.parser')
 
-# Defining headers of csv file
-headers = 'Title, Link, ThumbnailLink, Genre\n'
+    # Finding the desired container from the pageSoup
+    containers = pageSoup.findAll('div', {'class': 'item_film_list'})
 
-# Writing headers
-f.write(headers)
+    # Opening file for writing csv
 
-# Running loop for each container
-for container in containers:
+    # Using utf8 encoding due to compatibility issue in Windows
+    f = open(fileName, 'w', encoding='utf8')
 
-    # Video link
-    vidLink = container.a['href']
+    # Defining headers of csv file
+    headers = 'Title, Link, ThumbnailLink, Genre\n'
 
-    # Thumbnail source
-    thumbContainer = container.findAll('img',{'class':'thumb'})
+    # Writing headers
+    f.write(headers)
 
-    # Converting the type from bs4.element.Tag to str
-    paragraphs = []
-    for x in thumbContainer:
-        paragraphs.append(str(x))
-    paragraphSplit = paragraphs[0].split(';')
-    url = paragraphSplit[4].split('=//')
-    finalUrl = url[1].split('"')
-    thumbUrl = finalUrl[0]
+    # Running loop for each container
+    for container in containers:
+        # Video link
+        vidLink = container.a['href']
 
-    # Title of the Video
-    title = container.h3.span.text
+        # Thumbnail source
+        thumbContainer = container.findAll('img', {'class': 'thumb'})
 
-    # Genre
-    genresSplit = container.p.text.split('\n')
-    genres = genresSplit[2]
+        # Getting the thumbnail URL
+        thumbUrl = get_link(str(thumbContainer[0])).strip()
 
-    print('title: ' + title)
-    print('vidLink: ' + vidLink)
-    print('thumbUrl: ' + thumbUrl)
-    print('genres: ' + genres)
-    print('\n\n')
+        # Title of the Video
+        title = container.h3.span.text
 
-    # Writing extrated values in csv file
-    f.write(title + ',' + vidLink + ',' + thumbUrl + ',' + genres.replace(',' , '|') + '\n')
+        # Genre
+        genresSplit = container.p.text.split('\n')
+        genres = genresSplit[2]
 
-# Safely closing the file
-f.close()
+        print('title: ' + title)
+        print('vidLink: ' + vidLink)
+        print('thumbUrl: ' + thumbUrl)
+        print('genres: ' + genres)
+        print('\n\n')
+
+        # Writing extrated values in csv file
+        f.write(title + ',' + vidLink + ',' + thumbUrl + ',' + genres.replace(',', '|') + '\n')
+
+    # Safely closing the file
+    f.close()
+
+
+if __name__ == '__main__':
+    scrape("https://kissanime.ac/kissanime.html", "KissanimeFrontPage.csv")
